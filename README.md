@@ -1,5 +1,11 @@
 # Panfletador
 
+<p align="center">
+  <a href="https://rios-impassiveis.github.io/panfletador/">
+    <img src="https://img.shields.io/badge/🚀%20Abrir%20Panfletador-Online-111827?style=for-the-badge" alt="Abrir Panfletador">
+  </a>
+</p>
+
 **Panfletador** é uma ferramenta web simples para preparar panfletos para impressão, organizando várias cópias de uma mesma imagem em uma única folha.
 
 O projeto roda **100% no navegador**, sem servidor, banco de dados ou instalação. A proposta é transformar rapidamente uma arte pronta em uma folha de impressão com múltiplas cópias.
