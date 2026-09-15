@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panfletador</title>
+<style>
+  :root {
+    --bg: #f3f4f6;
+    --panel: #ffffff;
+    --border: #d1d5db;
+    --text: #111827;
+    --muted: #6b7280;
+    --accent: #111827;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  header {
+    padding: 18px 22px;
+    background: var(--accent);
+    color: #fff;
+  }
+
+  header h1 { margin: 0; font-size: 24px; }
+  header p { margin: 5px 0 0; opacity: .82; font-size: 14px; }
+
+  .app {
+    display: grid;
+    grid-template-columns: 330px 1fr;
+    min-height: calc(100vh - 80px);
+  }
+
+  aside {
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    padding: 18px;
+    overflow-y: auto;
+  }
+
+  main {
+    padding: 24px;
+    overflow: auto;
+  }
+
+  .group { margin-bottom: 18px; }
+
+  label.title {
+    display: block;
+    font-weight: 700;
+    margin-bottom: 7px;
+    font-size: 13px;
+  }
+
+  input[type="number"], select, input[type="file"] {
+    width: 100%;
+    padding: 9px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: #fff;
+  }
+
+  input[type="range"] { width: 100%; }
+
+  .row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
+  }
+
+  .check {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin: 8px 0;
+    font-size: 14px;
+  }
+
+  button {
+    width: 100%;
+    border: 0;
+    border-radius: 8px;
+    padding: 11px 14px;
+    cursor: pointer;
+    font-weight: 700;
+    margin-top: 7px;
+  }
+
+  button:hover { filter: brightness(.97); }
+
+  #printBtn {
+    background: #111827;
+    color: #fff;
+    font-size: 15px;
+  }
+
+  .exportRow {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 7px;
+  }
+
+  #pngBtn, #pdfBtn {
+    color: #fff;
+  }
+
+  #pngBtn { background: #2563eb; }
+  #pdfBtn { background: #b45309; }
+
+  #clearBtn {
+    background: #e5e7eb;
+    color: #111827;
+  }
+
+  .hint {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.4;
+    margin-top: 7px;
+  }
+
+  .status {
+    padding: 10px;
+    background: #f9fafb;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .preview-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100%;
+  }
+
+  #page {
+    position: relative;
+    background: #fff;
+    box-shadow: 0 4px 22px rgba(0,0,0,.16);
+    overflow: hidden;
+  }
+
+  .flyer {
+    position: absolute;
+    display: block;
+  }
+
+  .cutLine {
+    position: absolute;
+    pointer-events: none;
+    border: 0.5px dashed #777;
+  }
+
+  .empty {
+    min-height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    text-align: center;
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 25px;
+    background: #fff;
+  }
+
+  .number {
+    color: var(--muted);
+    font-size: 12px;
+    margin-top: 3px;
+  }
+
+  .sectionTitle {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--muted);
+    font-weight: 700;
+    margin: 22px 0 8px;
+  }
+
+  .qualityNote {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 5px;
+  }
+
+  @media (max-width: 850px) {
+    .app { grid-template-columns: 1fr; }
+    aside { border-right: 0; border-bottom: 1px solid var(--border); }
+  }
+
+  @media print {
+    body {
+      background: #fff;
+      margin: 0 !important;
+    }
+    header, aside, main > .preview-wrap > .empty { display: none !important; }
+    main { padding: 0 !important; overflow: visible !important; }
+    .preview-wrap { display: block !important; }
+    #page {
+      margin: 0 !important;
+      box-shadow: none !important;
+      transform: none !important;
+    }
+  }
+</style>
+</head>
+
+<body>
+<header>
+  <h1>📰 Panfletador</h1>
+  <p>Monte várias cópias de um panfleto em uma única folha para impressão.</p>
+</header>
+
+<div class="app">
+  <aside>
+    <div class="group">
+      <label class="title">Imagem do panfleto</label>
+      <input id="fileInput" type="file" accept="image/*">
+      <div class="hint">JPG, PNG, WEBP e outros formatos de imagem suportados pelo navegador.</div>
+    </div>
+
+    <div class="group">
+      <label class="title">Papel</label>
+      <select id="paper">
+        <option value="A4">A4 — 210 × 297 mm</option>
+        <option value="A3">A3 — 297 × 420 mm</option>
+        <option value="A5">A5 — 148 × 210 mm</option>
+        <option value="LETTER">Carta — 216 × 279 mm</option>
+        <option value="LEGAL">Ofício/Legal — 216 × 356 mm</option>
+      </select>
+    </div>
+
+    <div class="group">
+      <label class="title">Orientação</label>
+      <select id="orientation">
+        <option value="portrait">Retrato</option>
+        <option value="landscape">Paisagem</option>
+      </select>
+    </div>
+
+    <div class="group">
+      <label class="title">Distribuição</label>
+      <div class="row">
+        <div>
+          <label class="title">Colunas</label>
+          <input id="cols" type="number" min="1" max="12" value="2">
+        </div>
+        <div>
+          <label class="title">Linhas</label>
+          <input id="rows" type="number" min="1" max="12" value="3">
+        </div>
+      </div>
+      <div class="number">Ex.: 2 × 3 = 6 panfletos por folha.</div>
+    </div>
+
+    <div class="group">
+      <label class="title">Margem externa (mm)</label>
+      <input id="margin" type="number" min="0" max="30" step="0.5" value="5">
+    </div>
+
+    <div class="group">
+      <label class="title">Espaçamento entre panfletos (mm)</label>
+      <input id="gap" type="number" min="0" max="20" step="0.5" value="2">
+    </div>
+
+    <div class="group">
+      <label class="title">Escala do panfleto</label>
+      <input id="scale" type="range" min="50" max="100" value="100">
+      <div class="number"><span id="scaleValue">100</span>%</div>
+    </div>
+
+    <div class="group">
+      <label class="check">
+        <input id="crop" type="checkbox">
+        Preencher célula cortando excesso
+      </label>
+
+      <label class="check">
+        <input id="borders" type="checkbox">
+        Mostrar linhas de corte
+      </label>
+    </div>
+
+    <div class="group">
+      <div id="status" class="status">Nenhuma imagem carregada.</div>
+    </div>
+
+    <div class="sectionTitle">Saída</div>
+
+    <button id="printBtn">🖨️ Imprimir folha</button>
+
+    <div class="exportRow">
+      <button id="pngBtn">🖼️ PNG</button>
+      <button id="pdfBtn">📄 PDF</button>
+    </div>
+
+    <div class="qualityNote">
+      Os arquivos PNG e PDF são gerados diretamente no navegador.
+    </div>
+
+    <button id="clearBtn">Limpar</button>
+  </aside>
+
+  <main>
+    <div class="preview-wrap">
+      <div id="empty" class="empty">
+        <div>
+          <strong>Prévia da folha</strong><br>
+          Escolha uma imagem para começar.
+        </div>
+      </div>
+      <div id="page" hidden></div>
+    </div>
+  </main>
+</div>
+
+<script>
+(() => {
+  const els = {
+    file: document.getElementById('fileInput'),
+    paper: document.getElementById('paper'),
+    orientation: document.getElementById('orientation'),
+    cols: document.getElementById('cols'),
+    rows: document.getElementById('rows'),
+    margin: document.getElementById('margin'),
+    gap: document.getElementById('gap'),
+    scale: document.getElementById('scale'),
+    scaleValue: document.getElementById('scaleValue'),
+    crop: document.getElementById('crop'),
+    borders: document.getElementById('borders'),
+    status: document.getElementById('status'),
+    print: document.getElementById('printBtn'),
+    png: document.getElementById('pngBtn'),
+    pdf: document.getElementById('pdfBtn'),
+    clear: document.getElementById('clearBtn'),
+    empty: document.getElementById('empty'),
+    page: document.getElementById('page')
+  };
+
+  const paperSizes = {
+    A4: [210, 297],
+    A3: [297, 420],
+    A5: [148, 210],
+    LETTER: [216, 279],
+    LEGAL: [216, 356]
+  };
+
+  const mmToPx = mm => mm * (96 / 25.4);
+  const clampInt = (v, min, max) => Math.max(min, Math.min(max, parseInt(v, 10) || min));
+
+  let imageURL = null;
+  let imageInfo = null;
+
+  function getPageSize() {
+    let [w, h] = paperSizes[els.paper.value];
+    if (els.orientation.value === 'landscape') [w, h] = [h, w];
+    return { w, h };
+  }
+
+  function getLayout() {
+    const { w, h } = getPageSize();
+    const cols = clampInt(els.cols.value, 1, 12);
+    const rows = clampInt(els.rows.value, 1, 12);
+    const margin = Math.max(0, parseFloat(els.margin.value) || 0);
+    const gap = Math.max(0, parseFloat(els.gap.value) || 0);
+    const scale = (parseFloat(els.scale.value) || 100) / 100;
+
+    const innerW = w - margin * 2;
+    const innerH = h - margin * 2;
+    const cellW = (innerW - gap * (cols - 1)) / cols;
+    const cellH = (innerH - gap * (rows - 1)) / rows;
+
+    return { w, h, cols, rows, margin, gap, scale, innerW, innerH, cellW, cellH };
+  }
+
+  function getImageBox(layout) {
+    const srcRatio = imageInfo.width / imageInfo.height;
+    let iw, ih;
+
+    if (els.crop.checked) {
+      const cellRatio = layout.cellW / layout.cellH;
+      if (srcRatio > cellRatio) {
+        ih = layout.cellH * layout.scale;
+        iw = ih * srcRatio;
+      } else {
+        iw = layout.cellW * layout.scale;
+        ih = iw / srcRatio;
+      }
+    } else {
+      const fit = Math.min(
+        layout.cellW / imageInfo.width,
+        layout.cellH / imageInfo.height
+      );
+      iw = imageInfo.width * fit * layout.scale;
+      ih = imageInfo.height * fit * layout.scale;
+    }
+
+    return { iw, ih };
+  }
+
+  function updatePreview() {
+    if (!imageInfo) {
+      els.empty.hidden = false;
+      els.page.hidden = true;
+      return;
+    }
+
+    const L = getLayout();
+
+    if (L.cellW <= 0 || L.cellH <= 0) return;
+
+    els.scaleValue.textContent = Math.round(L.scale * 100);
+
+    const previewScale = Math.min(
+      0.82,
+      720 / Math.max(mmToPx(L.w), mmToPx(L.h))
+    );
+
+    els.page.style.width = mmToPx(L.w) * previewScale + 'px';
+    els.page.style.height = mmToPx(L.h) * previewScale + 'px';
+    els.page.style.transform = 'none';
+    els.page.replaceChildren();
+    els.page.hidden = false;
+    els.empty.hidden = true;
+
+    const box = getImageBox(L);
+
+    for (let r = 0; r < L.rows; r++) {
+      for (let c = 0; c < L.cols; c++) {
+        const cellX = L.margin + c * (L.cellW + L.gap);
+        const cellY = L.margin + r * (L.cellH + L.gap);
+
+        const img = document.createElement('img');
+        img.src = imageURL;
+        img.className = 'flyer';
+        img.draggable = false;
+        img.style.objectFit = els.crop.checked ? 'cover' : 'contain';
+        img.style.objectPosition = 'center';
+
+        const left = cellX + (L.cellW - box.iw) / 2;
+        const top = cellY + (L.cellH - box.ih) / 2;
+
+        img.style.left = mmToPx(left) * previewScale + 'px';
+        img.style.top = mmToPx(top) * previewScale + 'px';
+        img.style.width = mmToPx(box.iw) * previewScale + 'px';
+        img.style.height = mmToPx(box.ih) * previewScale + 'px';
+
+        if (els.borders.checked) {
+          const border = document.createElement('div');
+          border.className = 'cutLine';
+          border.style.left = mmToPx(cellX) * previewScale + 'px';
+          border.style.top = mmToPx(cellY) * previewScale + 'px';
+          border.style.width = mmToPx(L.cellW) * previewScale + 'px';
+          border.style.height = mmToPx(L.cellH) * previewScale + 'px';
+          els.page.appendChild(border);
+        }
+
+        els.page.appendChild(img);
+      }
+    }
+
+    els.status.innerHTML =
+      '<strong>' + (L.cols * L.rows) + ' panfleto(s) por folha</strong><br>' +
+      'Imagem: ' + imageInfo.width + ' × ' + imageInfo.height + ' px<br>' +
+      'Papel: ' + els.paper.options[els.paper.selectedIndex].text + '<br>' +
+      'Área útil: ' + L.innerW.toFixed(1) + ' × ' + L.innerH.toFixed(1) + ' mm<br>' +
+      'Célula: ' + L.cellW.toFixed(1) + ' × ' + L.cellH.toFixed(1) + ' mm';
+  }
+
+  function createPrintPage() {
+    if (!imageInfo) throw new Error('Escolha uma imagem antes.');
+
+    const L = getLayout();
+    const canvas = renderToCanvas(170);
+    const dataUrl = canvas.toDataURL('image/png');
+
+    const printWin = window.open('', '_blank');
+
+    if (!printWin) {
+      throw new Error('O navegador bloqueou a nova janela. Permita pop-ups para o Panfletador.');
+    }
+
+    printWin.document.open();
+    printWin.document.write(`<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Panfletador — impressão</title>
+<style>
+  @page { size: ${L.w}mm ${L.h}mm; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background: #fff;
+  }
+  body {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+  }
+  img {
+    width: ${L.w}mm;
+    height: ${L.h}mm;
+    display: block;
+    object-fit: fill;
+  }
+  @media screen {
+    body { padding: 12px; background: #eee; }
+    img { box-shadow: 0 2px 14px rgba(0,0,0,.18); }
+  }
+  @media print {
+    body { padding: 0; background: #fff; }
+  }
+</style>
+</head>
+<body>
+<img src="${dataUrl}" alt="Folha para impressão">
+<script>
+  window.addEventListener('load', () => {
+    setTimeout(() => window.print(), 250);
+  });
+<\/script>
+</body>
+</html>`);
+    printWin.document.close();
+  }
+
+  function renderToCanvas(dpi = 200) {
+    if (!imageInfo || !imageURL) throw new Error('Escolha uma imagem antes.');
+
+    const L = getLayout();
+    const pxPerMm = dpi / 25.4;
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(L.w * pxPerMm);
+    canvas.height = Math.round(L.h * pxPerMm);
+
+    const ctx = canvas.getContext('2d', { alpha: false });
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+
+    const image = new Image();
+    image.src = imageURL;
+
+    // A imagem blob já está carregada quando os botões são clicados.
+    // O desenho é síncrono porque o elemento HTMLImageElement é reutilizado
+    // pela função de carregamento abaixo.
+    return renderCanvasAsync(canvas, ctx, image, L, pxPerMm);
+  }
+
+  function renderCanvasAsync(canvas, ctx, image, L, pxPerMm) {
+    // Esta função devolve um canvas imediatamente quando a imagem está pronta.
+    // Caso contrário, renderizamos uma versão equivalente usando uma cópia
+    // do elemento da prévia, que já tem a imagem carregada.
+    image.src = imageURL;
+
+    if (image.complete && image.naturalWidth) {
+      drawLayout(canvas, ctx, image, L, pxPerMm);
+      return canvas;
+    }
+
+    const previewImage = els.page.querySelector('img.flyer');
+    if (previewImage && previewImage.complete) {
+      drawLayout(canvas, ctx, previewImage, L, pxPerMm);
+      return canvas;
+    }
+
+    throw new Error('Aguarde a imagem terminar de carregar.');
+  }
+
+  function drawLayout(canvas, ctx, image, L, pxPerMm) {
+    const box = getImageBox(L);
+
+    for (let r = 0; r < L.rows; r++) {
+      for (let c = 0; c < L.cols; c++) {
+        const cellX = L.margin + c * (L.cellW + L.gap);
+        const cellY = L.margin + r * (L.cellH + L.gap);
+
+        const left = cellX + (L.cellW - box.iw) / 2;
+        const top = cellY + (L.cellH - box.ih) / 2;
+
+        const x = left * pxPerMm;
+        const y = top * pxPerMm;
+        const w = box.iw * pxPerMm;
+        const h = box.ih * pxPerMm;
+
+        if (els.crop.checked) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(cellX * pxPerMm, cellY * pxPerMm, L.cellW * pxPerMm, L.cellH * pxPerMm);
+          ctx.clip();
+
+          const srcRatio = imageInfo.width / imageInfo.height;
+          let drawW, drawH;
+          if (srcRatio > L.cellW / L.cellH) {
+            drawH = L.cellH * L.scale * pxPerMm;
+            drawW = drawH * srcRatio;
+          } else {
+            drawW = L.cellW * L.scale * pxPerMm;
+            drawH = drawW / srcRatio;
+          }
+          const drawX = (cellX + (L.cellW - drawW / pxPerMm) / 2) * pxPerMm;
+          const drawY = (cellY + (L.cellH - drawH / pxPerMm) / 2) * pxPerMm;
+
+          ctx.drawImage(image, drawX, drawY, drawW, drawH);
+          ctx.restore();
+        } else {
+          ctx.drawImage(image, x, y, w, h);
+        }
+
+        if (els.borders.checked) {
+          ctx.save();
+          ctx.strokeStyle = '#888';
+          ctx.lineWidth = Math.max(1, pxPerMm * 0.18);
+          ctx.setLineDash([pxPerMm * 1.2, pxPerMm * 1.2]);
+          ctx.strokeRect(
+            cellX * pxPerMm,
+            cellY * pxPerMm,
+            L.cellW * pxPerMm,
+            L.cellH * pxPerMm
+          );
+          ctx.restore();
+        }
+      }
+    }
+  }
+
+  function buildExportCanvas(dpi = 200) {
+    if (!imageInfo || !imageURL) {
+      alert('Escolha uma imagem antes de exportar.');
+      return null;
+    }
+
+    const previewImage = els.page.querySelector('img.flyer');
+    if (!previewImage || !previewImage.complete) {
+      alert('Aguarde a imagem terminar de carregar.');
+      return null;
+    }
+
+    const L = getLayout();
+    const pxPerMm = dpi / 25.4;
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(L.w * pxPerMm);
+    canvas.height = Math.round(L.h * pxPerMm);
+
+    const ctx = canvas.getContext('2d', { alpha: false });
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    drawLayout(canvas, ctx, previewImage, L, pxPerMm);
+
+    return { canvas, layout: L };
+  }
+
+  function safeFileName(ext) {
+    const now = new Date();
+    const stamp = now.toISOString().slice(0, 10);
+    return `panfletador-${els.paper.value.toLowerCase()}-${stamp}.${ext}`;
+  }
+
+  function downloadBlob(blob, name) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+  }
+
+  function downloadPNG() {
+    const result = buildExportCanvas(200);
+    if (!result) return;
+
+    result.canvas.toBlob(blob => {
+      if (!blob) {
+        alert('Não foi possível gerar o PNG.');
+        return;
+      }
+      downloadBlob(blob, safeFileName('png'));
+    }, 'image/png');
+  }
+
+  function concatUint8(arrays) {
+    const total = arrays.reduce((n, a) => n + a.length, 0);
+    const out = new Uint8Array(total);
+    let offset = 0;
+    for (const a of arrays) {
+      out.set(a, offset);
+      offset += a.length;
+    }
+    return out;
+  }
+
+  function ascii(s) {
+    return new TextEncoder().encode(s);
+  }
+
+  async function canvasToJPEGBytes(canvas) {
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.94));
+    if (!blob) throw new Error('Não foi possível preparar a imagem para o PDF.');
+    return new Uint8Array(await blob.arrayBuffer());
+  }
+
+  async function buildPDFFromCanvas(canvas, layout) {
+    const jpeg = await canvasToJPEGBytes(canvas);
+    const wPx = canvas.width;
+    const hPx = canvas.height;
+
+    // PDF usa pontos: 72 pt = 1 inch.
+    const pageW = layout.w / 25.4 * 72;
+    const pageH = layout.h / 25.4 * 72;
+
+    const parts = [];
+    const offsets = [0];
+    let pos = 0;
+
+    function push(bytes) {
+      parts.push(bytes);
+      pos += bytes.length;
+    }
+
+    push(ascii('%PDF-1.4\n%\xFF\xFF\xFF\xFF\n'));
+
+    function obj(num, contentParts) {
+      offsets[num] = pos;
+      push(ascii(`${num} 0 obj\n`));
+      for (const part of contentParts) push(typeof part === 'string' ? ascii(part) : part);
+      push(ascii('\nendobj\n'));
+    }
+
+    obj(1, ['<< /Type /Catalog /Pages 2 0 R >>']);
+    obj(2, ['<< /Type /Pages /Kids [3 0 R] /Count 1 >>']);
+
+    obj(3, [
+      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageW.toFixed(3)} ${pageH.toFixed(3)}] /Resources << /XObject << /Im1 4 0 R >> >> /Contents 5 0 R >>`
+    ]);
+
+    obj(4, [
+      `<< /Type /XObject /Subtype /Image /Width ${wPx} /Height ${hPx} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpeg.length} >>\nstream\n`,
+      jpeg,
+      '\nendstream'
+    ]);
+
+    const content = `q\n${pageW.toFixed(3)} 0 0 ${pageH.toFixed(3)} 0 0 cm\n/Im1 Do\nQ\n`;
+
+    obj(5, [
+      `<< /Length ${ascii(content).length} >>\nstream\n`,
+      content,
+      'endstream'
+    ]);
+
+    const xrefPos = pos;
+    const objectCount = 5;
+
+    push(ascii(`xref\n0 ${objectCount + 1}\n`));
+    push(ascii('0000000000 65535 f \n'));
+
+    for (let i = 1; i <= objectCount; i++) {
+      push(ascii(String(offsets[i]).padStart(10, '0') + ' 00000 n \n'));
+    }
+
+    push(ascii(`trailer\n<< /Size ${objectCount + 1} /Root 1 0 R >>\nstartxref\n${xrefPos}\n%%EOF`));
+
+    return new Blob(parts, { type: 'application/pdf' });
+  }
+
+  async function downloadPDF() {
+    const result = buildExportCanvas(200);
+    if (!result) return;
+
+    try {
+      const blob = await buildPDFFromCanvas(result.canvas, result.layout);
+      downloadBlob(blob, safeFileName('pdf'));
+    } catch (err) {
+      console.error(err);
+      alert('Não foi possível gerar o PDF.');
+    }
+  }
+
+  els.file.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (imageURL) URL.revokeObjectURL(imageURL);
+    imageURL = URL.createObjectURL(file);
+
+    const img = new Image();
+    img.onload = () => {
+      imageInfo = { width: img.naturalWidth, height: img.naturalHeight };
+      updatePreview();
+    };
+    img.src = imageURL;
+  });
+
+  [
+    els.paper, els.orientation, els.cols, els.rows,
+    els.margin, els.gap, els.scale, els.crop, els.borders
+  ].forEach(el => el.addEventListener('input', updatePreview));
+
+  els.print.addEventListener('click', () => {
+    try {
+      createPrintPage();
+    } catch (err) {
+      console.error(err);
+      alert(err.message || 'Não foi possível abrir a versão para impressão.');
+    }
+  });
+
+  els.png.addEventListener('click', downloadPNG);
+  els.pdf.addEventListener('click', downloadPDF);
+
+  els.clear.addEventListener('click', () => {
+    els.file.value = '';
+    if (imageURL) URL.revokeObjectURL(imageURL);
+    imageURL = null;
+    imageInfo = null;
+    els.page.replaceChildren();
+    els.page.hidden = true;
+    els.empty.hidden = false;
+    els.status.textContent = 'Nenhuma imagem carregada.';
+  });
+
+  updatePreview();
+})();
+</script>
+</body>
+</html>
